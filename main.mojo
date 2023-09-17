@@ -1,7 +1,5 @@
 from python import Python
 
-#let np = Python.import_module("numpy")
-
 def main():
     let torch = Python.import_module("torch")
     
