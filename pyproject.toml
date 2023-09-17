@@ -8,8 +8,9 @@ readme = "README.md"
 packages = [{include = "mojo_playground"}]
 
 [tool.poetry.dependencies]
-python = "^3.10"
-torch = "^2.0.1"
+python = "^3.10,<3.13"
+torch = "2.0.0"
+numpy = "^1.26.0"
 
 
 [build-system]
