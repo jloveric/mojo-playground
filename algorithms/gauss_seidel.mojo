@@ -39,14 +39,29 @@ fn matrix_row_vector_multiply(
 
 fn gauss_seidel(
     matrix: Tensor[DType.float64],
-    x: Tensor[DType.float64],
+    inout x: Tensor[DType.float64],
     b: Tensor[DType.float64],
     tolerance: Float64,
-    size: Int,  
+    size: Int,
+    max_iterations: Int=100
 ):
-    var delta : Float64
+    var delta : Float64 = 10*tolerance # Need max float in mojo
     var err : Float64=0.0
-    for i in range(size):
-        delta = ((b[i] - matrix_row_vector_multiply(matrix,x,i,size) + matrix[i, i] * x[i]) / matrix[i, i])-x[i]
-        err+=delta*delta
-        x[i]+=delta
+    var iteration = 0
+
+    while err > tolerance and iteration<max_iterations:
+        for i in range(size):
+            delta = ((b[i] - matrix_row_vector_multiply(matrix,x,i,size) + matrix[i, i] * x[i]) / matrix[i, i])-x[i]
+            err+=delta*delta
+            x[i]+=delta
+        iteration+=1
+        print('err', err)
+        err=0
+
+fn main() :
+    let size = 100
+    var m = rand[DType.float64](size, size)
+    var x = rand[DType.float64](size)
+    var b = rand[DType.float64](size)
+
+    gauss_seidel(m, x, b, 1e-3, size, 100)
