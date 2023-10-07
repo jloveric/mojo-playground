@@ -2,30 +2,6 @@ from tensor import Tensor, TensorSpec, TensorShape
 from utils.index import Index
 from random import rand
 
-"""
-let height = 256
-let width = 256
-let channels = 3
-
-# Create the tensor of dimensions height, width, channels
-# and fill with random values.
-let image = rand[DType.float32](height, width, channels)
-
-# Declare the grayscale image.
-let spec = TensorSpec(DType.float32, height, width)
-var gray_scale_image = Tensor[DType.float32](spec)
-
-# Perform the RGB to grayscale transform.
-for y in range(height):
-    for x in range(width):
-        let r = image[y, x, 0]
-        let g = image[y, x, 1]
-        let b = image[y, x, 2]
-        gray_scale_image[Index(y, x)] = 0.299 * r + 0.587 * g + 0.114 * b
-
-print(gray_scale_image.shape().__str__())
-"""
-
 
 fn matrix_row_vector_multiply(
     matrix: Tensor[DType.float64], x: Tensor[DType.float64], row: Int, size: Int
@@ -37,17 +13,17 @@ fn matrix_row_vector_multiply(
     return acc
 
 
-fn gauss_seidel(
-    matrix: Tensor[DType.float64],
-    inout x: Tensor[DType.float64],
-    b: Tensor[DType.float64],
-    tolerance: Float64,
+fn gauss_seidel[T: DType](
+    matrix: Tensor[T],
+    inout x: Tensor[T],
+    b: Tensor[T],
+    tolerance: T,
     size: Int,
     max_iterations: Int=100
 ):
-    var delta : Float64 = 10*tolerance # Need max float in mojo
-    var err : Float64=10*tolerance
-    var iteration = 0
+    var delta : T = 10*tolerance # Need max float in mojo
+    var err : T=10*tolerance
+    var iteration : Int = 0
     print('inside function')
     while err > tolerance and iteration<max_iterations:
         err = 0.0
@@ -64,4 +40,4 @@ fn main() :
     var x = rand[DType.float64](size)
     let b = rand[DType.float64](size)
 
-    gauss_seidel(m, x, b, 1e-3, size, 100)
+    gauss_seidel[Float64](m, x, b, 1e-3, size, 100)
