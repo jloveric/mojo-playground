@@ -1,18 +1,7 @@
-[tool.poetry]
+[project]
 name = "mojo-playground"
 version = "0.1.0"
-description = ""
-authors = ["jloveric <john.loverich@gmail.com>"]
-license = "MIT"
+description = "Add your description here"
 readme = "README.md"
-packages = [{include = "mojo_playground"}]
-
-[tool.poetry.dependencies]
-python = "^3.10,<3.13"
-torch = "2.0.0"
-numpy = "^1.26.0"
-
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires-python = ">=3.13"
+dependencies = []

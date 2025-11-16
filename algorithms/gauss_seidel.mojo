@@ -1,52 +1,90 @@
-from tensor import Tensor, TensorSpec, TensorShape
-from utils.index import Index
-from random import rand
-from math.limit import inf
+from collections import InlineArray
+from layout import Layout, LayoutTensor
 
-fn matrix_row_vector_multiply[T:DType](
-    matrix: Tensor[T], x: Tensor[T], row: Int, size: Int
-)->Float64:
-    var acc: T = 0.0
+
+alias rows = 3
+alias cols = 3
+
+
+fn matrix_row_vector_multiply(
+    matrix: LayoutTensor[mut=True, dtype=DType.float64, layout=Layout.row_major(rows, cols)],
+    x: LayoutTensor[mut=True, dtype=DType.float64, layout=Layout.row_major(rows, 1)],
+    row: Int,
+    size: Int,
+) -> Float64:
+    var acc: Float64 = 0.0
     for i in range(size):
-        acc+=matrix[row,i]*x[i]
-    
+        # tensor[x, y] returns a SIMD vector; [0] extracts the scalar
+        acc += matrix[row, i][0] * x[i, 0][0]
     return acc
 
 
-"""
-gauss_seidel operator. Trying to make this templated, but due to
-some current limitations in mojo I need to define my scalars with
-the particular type.
-"""
-fn gauss_seidel[T: DType](
-    matrix: Tensor[T],
-    inout x: Tensor[T],
-    b: Tensor[T],
-    tolerance: DType.float64,
+fn gauss_seidel(
+    matrix: LayoutTensor[mut=True, dtype=DType.float64, layout=Layout.row_major(rows, cols)],
+    x: LayoutTensor[mut=True, dtype=DType.float64, layout=Layout.row_major(rows, 1)],
+    b: LayoutTensor[mut=True, dtype=DType.float64, layout=Layout.row_major(rows, 1)],
+    tolerance: Float64,
     size: Int,
-    max_iterations: Int=100
-):
-    var delta : Float64
-    var err =inf[DType.float64]
-    var iteration : Int = 0
-    print('inside function')
-    while err > tolerance and iteration<max_iterations:
+    max_iterations: Int = 100,
+) -> LayoutTensor[mut=True, dtype=DType.float64, layout=Layout.row_major(rows, 1)]:
+    var x_local = x   # work on a local copy of the vector
+    var err: Float64 = 1e308
+    var iteration: Int = 0
+    print("inside function")
+    while err > tolerance and iteration < max_iterations:
         err = 0.0
         for i in range(size):
-            delta = ((b[i] - matrix_row_vector_multiply[T](matrix,x,i,size) + matrix[i, i] * x[i]) / matrix[i, i])-x[i]
-            err+=delta*delta
-            x[i]+=delta
-        iteration+=1
-        print('err', err)
+            var row_value = matrix_row_vector_multiply(matrix, x_local, i, size)
+            var delta = ((
+                b[i, 0][0]
+                - row_value
+                + matrix[i, i][0] * x_local[i, 0][0]
+            ) / matrix[i, i][0]) - x_local[i, 0][0]
+            err += delta * delta
+            x_local[i, 0] = x_local[i, 0][0] + delta
+        iteration += 1
+        print("err", err)
 
-fn main() :
-    let size = 100
-    let m = rand[DType.float64](size, size)
-    var x = rand[DType.float64](size)
-    let b = rand[DType.float64](size)
+    return x_local
 
-    gauss_seidel[DType.float64](m, x, b, 1e-3, size, 100)
-"""
 
-fn main() :
-    pass
+fn main():
+    # Simple 3x3 linear system Ax = b to demonstrate Gauss-Seidel, using
+    # row-major LayoutTensors for matrix and vectors.
+    alias layout_mat = Layout.row_major(rows, cols)
+    alias layout_vec = Layout.row_major(rows, 1)
+
+    var storage_A = InlineArray[Float64, rows * cols](uninitialized=True)
+    var storage_b = InlineArray[Float64, rows](uninitialized=True)
+    var storage_x = InlineArray[Float64, rows](uninitialized=True)
+
+    var A = LayoutTensor[mut=True, dtype=DType.float64, layout=layout_mat](storage_A)
+    var b = LayoutTensor[mut=True, dtype=DType.float64, layout=layout_vec](storage_b)
+    var x = LayoutTensor[mut=True, dtype=DType.float64, layout=layout_vec](storage_x)
+
+    # Fill A with a diagonally dominant system.
+    A[0, 0] = SIMD[DType.float64, 1](4.0)
+    A[0, 1] = SIMD[DType.float64, 1](1.0)
+    A[0, 2] = SIMD[DType.float64, 1](2.0)
+
+    A[1, 0] = SIMD[DType.float64, 1](1.0)
+    A[1, 1] = SIMD[DType.float64, 1](3.0)
+    A[1, 2] = SIMD[DType.float64, 1](1.0)
+
+    A[2, 0] = SIMD[DType.float64, 1](2.0)
+    A[2, 1] = SIMD[DType.float64, 1](1.0)
+    A[2, 2] = SIMD[DType.float64, 1](5.0)
+
+    # b vector.
+    b[0, 0] = SIMD[DType.float64, 1](4.0)
+    b[1, 0] = SIMD[DType.float64, 1](2.0)
+    b[2, 0] = SIMD[DType.float64, 1](4.0)
+
+    # Initial guess x0 = 0.
+    for i in range(rows):
+        x[i, 0] = SIMD[DType.float64, 1](0.0)
+
+    var size: Int = rows
+    x = gauss_seidel(A, x, b, 1e-6, size, 100)
+    for i in range(size):
+        print("x[", i, "] =", x[i, 0][0])
