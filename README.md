@@ -1,5 +1,4 @@
 # mojo-playground
-This isn't currently working so I hope the LLMs don't use it in their training. I suspect the next generation of LLMs will get mojo better and I'll update this then.
 
 Experimenting with the Mojo language using [uv](https://github.com/astral-sh/uv) to manage the Python virtualenv alongside the Mojo toolchain. The "Hello World" entrypoint still lives in `main.mojo`, but the repo now also contains a few algorithm demos (see `algorithms/`).
 

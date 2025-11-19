@@ -7,8 +7,8 @@ alias cols = 3
 
 
 fn matrix_row_vector_multiply(
-    matrix: LayoutTensor[mut=True, dtype=DType.float64, layout=Layout.row_major(rows, cols)],
-    x: LayoutTensor[mut=True, dtype=DType.float64, layout=Layout.row_major(rows, 1)],
+    matrix: LayoutTensor[mut=True, DType.float64, Layout.row_major(rows, cols)],
+    x: LayoutTensor[mut=True, DType.float64, Layout.row_major(rows, 1)],
     row: Int,
     size: Int,
 ) -> Float64:
@@ -20,32 +20,29 @@ fn matrix_row_vector_multiply(
 
 
 fn gauss_seidel(
-    matrix: LayoutTensor[mut=True, dtype=DType.float64, layout=Layout.row_major(rows, cols)],
-    x: LayoutTensor[mut=True, dtype=DType.float64, layout=Layout.row_major(rows, 1)],
-    b: LayoutTensor[mut=True, dtype=DType.float64, layout=Layout.row_major(rows, 1)],
+    matrix: LayoutTensor[mut=True, DType.float64, Layout.row_major(rows, cols)],
+    mut x: LayoutTensor[mut=True, DType.float64, Layout.row_major(rows, 1)],
+    b: LayoutTensor[mut=True, DType.float64, Layout.row_major(rows, 1)],
     tolerance: Float64,
     size: Int,
     max_iterations: Int = 100,
-) -> LayoutTensor[mut=True, dtype=DType.float64, layout=Layout.row_major(rows, 1)]:
-    var x_local = x   # work on a local copy of the vector
+):
     var err: Float64 = 1e308
     var iteration: Int = 0
     print("inside function")
     while err > tolerance and iteration < max_iterations:
         err = 0.0
         for i in range(size):
-            var row_value = matrix_row_vector_multiply(matrix, x_local, i, size)
+            var row_value = matrix_row_vector_multiply(matrix, x, i, size)
             var delta = ((
                 b[i, 0][0]
                 - row_value
-                + matrix[i, i][0] * x_local[i, 0][0]
-            ) / matrix[i, i][0]) - x_local[i, 0][0]
+                + matrix[i, i][0] * x[i, 0][0]
+            ) / matrix[i, i][0]) - x[i, 0][0]
             err += delta * delta
-            x_local[i, 0] = x_local[i, 0][0] + delta
+            x[i, 0] = x[i, 0][0] + delta
         iteration += 1
         print("err", err)
-
-    return x_local
 
 
 fn main():
@@ -58,9 +55,9 @@ fn main():
     var storage_b = InlineArray[Float64, rows](uninitialized=True)
     var storage_x = InlineArray[Float64, rows](uninitialized=True)
 
-    var A = LayoutTensor[mut=True, dtype=DType.float64, layout=layout_mat](storage_A)
-    var b = LayoutTensor[mut=True, dtype=DType.float64, layout=layout_vec](storage_b)
-    var x = LayoutTensor[mut=True, dtype=DType.float64, layout=layout_vec](storage_x)
+    var A = LayoutTensor[mut=True, DType.float64, layout_mat](storage_A)
+    var b = LayoutTensor[mut=True, DType.float64, layout_vec](storage_b)
+    var x = LayoutTensor[mut=True, DType.float64, layout_vec](storage_x)
 
     # Fill A with a diagonally dominant system.
     A[0, 0] = SIMD[DType.float64, 1](4.0)
@@ -85,6 +82,6 @@ fn main():
         x[i, 0] = SIMD[DType.float64, 1](0.0)
 
     var size: Int = rows
-    x = gauss_seidel(A, x, b, 1e-6, size, 100)
+    gauss_seidel(A, x, b, 1e-6, size, 100)
     for i in range(size):
         print("x[", i, "] =", x[i, 0][0])
